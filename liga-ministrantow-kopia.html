@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Liga Ministrantów</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg:      #0f172a;
+            --bg2:     #1e293b;
+            --card:    #1e293b;
+            --accent:  #facc15;
+            --accent2: #fde047;
+            --text:    #f8fafc;
+            --muted:   #94a3b8;
+            --border:  #334155;
+            --success: #22c55e;
+            --danger:  #ef4444;
+            --warn:    #f59e0b;
+            --gold:    #facc15;
+            --silver:  #9ca3af;
+            --bronze:  #cd7c3a;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── VIEWS ────────────────────────────────── */
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* ── LOGIN ───────────────────────────────── */
+        .login-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(ellipse at 50% 30%, #1e2f50 0%, #0f172a 70%);
+        }
+
+        .login-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+        }
+
+        .login-logo { text-align: center; margin-bottom: 36px; }
+        .login-logo .logo-icon { font-size: 52px; margin-bottom: 10px; }
+        .login-logo h1 { font-size: 26px; font-weight: 800; color: var(--accent); }
+        .login-logo p  { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+        /* ── FORM ─────────────────────────────────── */
+        .form-group { margin-bottom: 20px; }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(250,204,21,.12);
+        }
+
+        select option { background: var(--bg2); }
+
+        /* ── BUTTONS ──────────────────────────────── */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #000;
+            justify-content: center;
+        }
+        .btn-primary:hover {
+            background: var(--accent2);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(250,204,21,.3);
+        }
+
+        .btn-success { background: var(--success); color: #fff; }
+        .btn-success:hover { filter: brightness(1.1); }
+
+        .btn-danger  { background: var(--danger);  color: #fff; }
+        .btn-danger:hover  { filter: brightness(1.1); }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { background: var(--bg2); color: var(--text); }
+
+        .btn-sm  { padding: 7px 14px; font-size: 12px; border-radius: 8px; }
+        .btn-full { width: 100%; }
+
+        /* ── NAVBAR ───────────────────────────────── */
+        .navbar {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .navbar-brand .brand-icon { font-size: 26px; }
+
+        .navbar-right { display: flex; align-items: center; gap: 14px; }
+
+        .points-badge {
+            background: rgba(250,204,21,.13);
+            border: 1px solid rgba(250,204,21,.3);
+            color: var(--accent);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .user-chip { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+
+        /* ── CONTENT ──────────────────────────────── */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* ── TABS ─────────────────────────────────── */
+        .tab-nav {
+            display: flex;
+            gap: 4px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 6px;
+            margin-bottom: 28px;
+            width: fit-content;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all .2s;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+        }
+
+        .tab-btn:not(.active):hover { background: var(--bg); color: var(--text); }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── CARD ─────────────────────────────────── */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── STATS GRID ───────────────────────────── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), #f97316);
+        }
+
+        .stat-icon   { font-size: 28px; margin-bottom: 6px; }
+        .stat-label  { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+        .stat-value  { font-size: 34px; font-weight: 800; color: var(--accent); line-height: 1.1; margin-top: 4px; }
+
+        /* ── PROFILE HERO ─────────────────────────── */
+        .profile-hero {
+            background: linear-gradient(135deg, #1e293b 0%, #0d1a2d 100%);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px 32px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .profile-avatar {
+            width: 78px;
+            height: 78px;
+            background: linear-gradient(135deg, var(--accent), #f97316);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            font-weight: 900;
+            color: #000;
+            flex-shrink: 0;
+            box-shadow: 0 0 30px rgba(250,204,21,.35);
+        }
+
+        .profile-meta h2 { font-size: 22px; font-weight: 800; }
+
+        .profile-pts {
+            font-size: 42px;
+            font-weight: 900;
+            color: var(--accent);
+            line-height: 1;
+            margin: 4px 0;
+        }
+
+        .profile-pts span { font-size: 16px; color: var(--muted); font-weight: 400; }
+
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 6px;
+        }
+
+        .badge-admin { background: rgba(250,204,21,.18); color: var(--accent); border: 1px solid rgba(250,204,21,.3); }
+        .badge-user  { background: rgba(148,163,184,.1); color: var(--muted); border: 1px solid var(--border); }
+
+        /* ── RANKING ──────────────────────────────── */
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 13px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            background: var(--bg);
+            border: 1px solid transparent;
+            transition: all .2s;
+        }
+
+        .ranking-item:hover { transform: translateX(4px); border-color: var(--border); }
+        .ranking-item.is-gold   { border-left: 3px solid var(--gold);   background: rgba(250,204,21,.05); }
+        .ranking-item.is-silver { border-left: 3px solid var(--silver); background: rgba(148,163,184,.05); }
+        .ranking-item.is-bronze { border-left: 3px solid var(--bronze); background: rgba(205,124,58,.05); }
+        .ranking-item.is-me     { outline: 1px solid rgba(250,204,21,.35); }
+
+        .rank-num {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .rn-1 { background: var(--gold);   color: #000; }
+        .rn-2 { background: var(--silver); color: #000; }
+        .rn-3 { background: var(--bronze); color: #fff; }
+        .rn-x { background: var(--bg2);    color: var(--muted); }
+
+        .rank-name { flex: 1; font-weight: 500; font-size: 15px; }
+        .rank-pts  { font-weight: 800; color: var(--accent); font-size: 15px; }
+
+        /* ── TABLE ────────────────────────────────── */
+        .tbl-wrap { overflow-x: auto; }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th {
+            text-align: left;
+            padding: 11px 16px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 13px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(51,65,85,.5);
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255,255,255,.02); }
+
+        .status-pill {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .sp-pending  { background: rgba(245,158,11,.18); color: var(--warn); }
+        .sp-approved { background: rgba(34,197,94,.18);  color: var(--success); }
+        .sp-rejected { background: rgba(239,68,68,.18);  color: var(--danger); }
+
+        /* ── PENDING CARDS ────────────────────────── */
+        .pending-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .pc-info { flex: 1; }
+        .pc-name { font-weight: 700; margin-bottom: 3px; }
+        .pc-meta { font-size: 13px; color: var(--muted); }
+        .pc-pts  { font-size: 22px; font-weight: 900; color: var(--accent); flex-shrink: 0; }
+        .pc-btns { display: flex; gap: 8px; flex-shrink: 0; }
+
+        /* ── USER ROW ─────────────────────────────── */
+        .user-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+
+        .ur-avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #f97316);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 16px; color: #000;
+            flex-shrink: 0;
+        }
+
+        .ur-info { flex: 1; min-width: 0; }
+        .ur-name  { font-weight: 700; font-size: 15px; }
+        .ur-id    { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .ur-controls { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+        input.pts-input {
+            width: 80px;
+            padding: 7px 10px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        select.role-select {
+            width: 120px;
+            padding: 7px 10px;
+            font-size: 13px;
+        }
+
+        /* ── FORM GRID ────────────────────────────── */
+        .form-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* ── ALERT ────────────────────────────────── */
+        .alert {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .alert.show  { display: block; }
+        .alert-error { background: rgba(239,68,68,.14); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; }
+        .alert-ok    { background: rgba(34,197,94,.14); border: 1px solid rgba(34,197,94,.3); color: #86efac; }
+
+        /* ── TOAST ────────────────────────────────── */
+        #toasts {
+            position: fixed;
+            top: 72px; right: 16px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 14px;
+            box-shadow: 0 8px 30px rgba(0,0,0,.4);
+            animation: slideIn .3s ease;
+            max-width: 300px;
+        }
+
+        .toast-ok  { border-left: 3px solid var(--success); }
+        .toast-err { border-left: 3px solid var(--danger); }
+
+        @keyframes slideIn {
+            from { transform: translateX(110%); opacity: 0; }
+            to   { transform: translateX(0);    opacity: 1; }
+        }
+
+        /* ── LOADER / EMPTY ───────────────────────── */
+        .spinner {
+            width: 22px; height: 22px;
+            border: 2px solid rgba(255,255,255,.2);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--muted);
+        }
+
+        .empty-state .ei { font-size: 44px; margin-bottom: 10px; }
+        .empty-state p   { font-size: 15px; }
+
+        /* ── RESPONSIVE ───────────────────────────── */
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .profile-hero { flex-direction: column; text-align: center; }
+            .form-grid-2 { grid-template-columns: 1fr; }
+            .pending-card { flex-direction: column; align-items: flex-start; }
+            .user-row { flex-direction: column; align-items: flex-start; }
+            .main-content { padding: 16px; }
+            .login-card { padding: 32px 20px; margin: 16px; }
+            .navbar { padding: 0 14px; }
+            .brand-text { display: none; }
+            .navbar-right { gap: 8px; }
+            .points-badge { font-size: 12px; padding: 5px 10px; }
+            .tab-nav { width: 100%; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .ur-controls { flex-wrap: wrap; }
+        }
+
+        /* ── SCROLLBAR ────────────────────────────── */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<!-- ══════════════════════════════════════════
+     LOGIN
+══════════════════════════════════════════ -->
+<div id="loginView" class="view active">
+    <div class="login-page">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="logo-icon">⚜️</div>
+                <h1>Liga Ministrantów</h1>
+                <p>System punktacji i rankingu</p>
+            </div>
+
+            <div id="loginAlert" class="alert"></div>
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="twoj@email.com"
+                       onkeydown="if(event.key==='Enter') login()" />
+            </div>
+            <div class="form-group">
+                <label>Hasło</label>
+                <input type="password" id="loginPassword" placeholder="••••••••"
+                       onkeydown="if(event.key==='Enter') login()" />
+            </div>
+            <button class="btn btn-primary btn-full" id="loginBtn" onclick="login()">
+                Zaloguj się
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     DASHBOARD
+══════════════════════════════════════════ -->
+<div id="dashboardView" class="view">
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <span class="brand-icon">⚜️</span>
+            <span class="brand-text">Liga Ministrantów</span>
+        </div>
+        <div class="navbar-right">
+            <div class="user-chip">
+                <span>👤</span>
+                <span id="navName">—</span>
+            </div>
+            <div class="points-badge" id="navPts">⭐ 0 pkt</div>
+            <button class="btn btn-ghost btn-sm" onclick="logout()">Wyloguj</button>
+        </div>
+    </nav>
+
+    <div class="main-content">
+
+        <!-- MAIN TAB NAV -->
+        <div class="tab-nav" id="mainTabNav">
+            <button class="tab-btn active" onclick="openTab('home', this)">🏠 Dashboard</button>
+            <button class="tab-btn"        onclick="openTab('ranking', this)">🏆 Ranking</button>
+            <button class="tab-btn"        onclick="openTab('history', this)">📋 Historia</button>
+            <button class="tab-btn" id="adminTabBtn" style="display:none"
+                    onclick="openTab('admin', this)">👑 Admin</button>
+        </div>
+
+        <!-- ── HOME ─────────────────────────────── -->
+        <div id="panel-home" class="tab-panel active">
+
+            <!-- PROFILE HERO -->
+            <div class="profile-hero">
+                <div class="profile-avatar" id="heroAvatar">?</div>
+                <div class="profile-meta">
+                    <div class="role-badge badge-user" id="heroBadge">⛪ Ministrant</div>
+                    <h2 id="heroName">Ładowanie…</h2>
+                    <div class="profile-pts">
+                        <span id="heroPts">0</span>
+                        <span> punktów</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATS -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-label">Punkty</div>
+                    <div class="stat-value" id="sPts">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-label">Aktywności</div>
+                    <div class="stat-value" id="sAct">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🏅</div>
+                    <div class="stat-label">Ranking</div>
+                    <div class="stat-value" id="sRank">#—</div>
+                </div>
+            </div>
+
+            <!-- ADD ACTIVITY -->
+            <div class="card">
+                <div class="card-title">➕ Dodaj aktywność</div>
+                <div id="addAlert" class="alert"></div>
+                <div class="form-grid-2">
+                    <div class="form-group">
+                        <label>Typ aktywności</label>
+                        <select id="actType" onchange="prefillPts()">
+                            <option value="Msza">⛪ Msza</option>
+                            <option value="Sprzątanie">🧹 Sprzątanie</option>
+                            <option value="Nabożeństwo">🕯️ Nabożeństwo</option>
+                            <option value="Inne">📌 Inne</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Punkty</label>
+                        <input type="number" id="actPts" value="10" min="1" max="500" />
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="addBtn" onclick="addActivity()"
+                        style="width: auto; padding: 12px 28px;">
+                    Wyślij zgłoszenie
+                </button>
+            </div>
+        </div>
+
+        <!-- ── RANKING ───────────────────────────── -->
+        <div id="panel-ranking" class="tab-panel">
+            <div class="card">
+                <div class="card-title">🏆 Ranking ministrantów</div>
+                <div id="rankingList"><div class="empty-state"><div class="spinner"></div></div></div>
+            </div>
+        </div>
+
+        <!-- ── HISTORY ───────────────────────────── -->
+        <div id="panel-history" class="tab-panel">
+            <div class="card">
+                <div class="card-title">📋 Historia aktywności</div>
+                <div class="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Typ</th>
+                                <th>Punkty</th>
+                                <th>Status</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── ADMIN ─────────────────────────────── -->
+        <div id="panel-admin" class="tab-panel">
+
+            <div class="tab-nav" id="adminTabNav">
+                <button class="tab-btn active" onclick="openAdminTab('pending', this)">⏳ Zgłoszenia</button>
+                <button class="tab-btn"        onclick="openAdminTab('users',   this)">👥 Użytkownicy</button>
+            </div>
+
+            <!-- PENDING -->
+            <div id="admin-pending" class="tab-panel active">
+                <div class="card">
+                    <div class="card-title">⏳ Oczekujące zgłoszenia</div>
+                    <div id="pendingList"><div class="empty-state"><div class="spinner"></div></div></div>
+                </div>
+            </div>
+
+            <!-- USERS -->
+            <div id="admin-users" class="tab-panel">
+                <div class="card">
+                    <div class="card-title">👥 Zarządzanie użytkownikami</div>
+                    <div id="usersList"><div class="empty-state"><div class="spinner"></div></div></div>
+                </div>
+            </div>
+
+        </div>
+
+    </div><!-- /main-content -->
+</div><!-- /dashboardView -->
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ─── CONFIG ─────────────────────────────────────────────────
+const SUPABASE_URL = 'https://fguoeuuctfdtuqntlcht.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZndW9ldXVjdGZkdHVxbnRsY2h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNTI4ODAsImV4cCI6MjA5MTgyODg4MH0.vHek3lpzk7g-1PSJbxS47657urCEVve5f1pG4LXaQ6c';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const DEFAULT_PTS = { Msza: 10, Nabożeństwo: 8, Sprzątanie: 5, Inne: 5 };
+const TYPE_EMOJI  = { Msza: '⛪', Nabożeństwo: '🕯️', Sprzątanie: '🧹', Inne: '📌' };
+
+let currentUser    = null;
+let currentProfile = null;
+
+// ─── INIT ────────────────────────────────────────────────────
+async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+        currentUser = session.user;
+        await fetchProfile();
+        renderDashboard();
+    }
+
+    sb.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN') {
+            currentUser = session.user;
+            await fetchProfile();
+            renderDashboard();
+        } else if (event === 'SIGNED_OUT') {
+            currentUser    = null;
+            currentProfile = null;
+            showView('loginView');
+        }
+    });
+}
+
+// ─── AUTH ────────────────────────────────────────────────────
+async function login() {
+    const email    = q('#loginEmail').value.trim();
+    const password = q('#loginPassword').value;
+    const btn      = q('#loginBtn');
+
+    if (!email || !password) {
+        showAlert('loginAlert', 'Wypełnij email i hasło.', 'error');
+        return;
+    }
+
+    setLoading(btn, true, 'Logowanie…');
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    setLoading(btn, false, 'Zaloguj się');
+
+    if (error) showAlert('loginAlert', '❌ ' + error.message, 'error');
+}
+
+async function logout() {
+    await sb.auth.signOut();
+}
+
+// ─── PROFILE ─────────────────────────────────────────────────
+async function fetchProfile() {
+    const { data, error } = await sb
+        .from('users')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+    if (!error && data) currentProfile = data;
+}
+
+// ─── DASHBOARD RENDER ────────────────────────────────────────
+function renderDashboard() {
+    showView('dashboardView');
+
+    const name   = currentProfile?.name   || currentUser.email;
+    const points = currentProfile?.points || 0;
+    const role   = currentProfile?.role   || 'user';
+
+    // Navbar
+    q('#navName').textContent = name;
+    q('#navPts').textContent  = `⭐ ${points} pkt`;
+
+    // Hero
+    q('#heroAvatar').textContent = name.charAt(0).toUpperCase();
+    q('#heroName').textContent   = name;
+    q('#heroPts').textContent    = points;
+    q('#sPts').textContent       = points;
+
+    if (role === 'admin') {
+        q('#heroBadge').textContent  = '👑 Administrator';
+        q('#heroBadge').className    = 'role-badge badge-admin';
+        q('#adminTabBtn').style.display = '';
+    }
+
+    loadStats();
+    loadRanking();
+    loadHistory();
+}
+
+// ─── STATS ───────────────────────────────────────────────────
+async function loadStats() {
+    const [{ data: acts }, { data: users }] = await Promise.all([
+        sb.from('activities').select('id').eq('user_id', currentUser.id),
+        sb.from('users').select('id, points').order('points', { ascending: false })
+    ]);
+
+    q('#sAct').textContent = acts?.length ?? 0;
+
+    if (users) {
+        const rank = users.findIndex(u => u.id === currentUser.id) + 1;
+        q('#sRank').textContent = rank > 0 ? '#' + rank : '#—';
+    }
+}
+
+// ─── ACTIVITY FORM ───────────────────────────────────────────
+function prefillPts() {
+    const type = q('#actType').value;
+    q('#actPts').value = DEFAULT_PTS[type] ?? 5;
+}
+
+async function addActivity() {
+    const type   = q('#actType').value;
+    const points = parseInt(q('#actPts').value, 10);
+    const btn    = q('#addBtn');
+
+    if (!points || points < 1) {
+        showAlert('addAlert', 'Podaj prawidłową liczbę punktów.', 'error');
+        return;
+    }
+
+    setLoading(btn, true, 'Wysyłanie…');
+    const { error } = await sb.from('activities').insert({
+        user_id: currentUser.id,
+        type,
+        points,
+        status: 'pending'
+    });
+    setLoading(btn, false, 'Wyślij zgłoszenie');
+
+    if (error) {
+        showAlert('addAlert', '❌ Błąd: ' + error.message, 'error');
+    } else {
+        showAlert('addAlert', '✅ Zgłoszenie wysłane! Czeka na zatwierdzenie.', 'ok');
+        loadHistory();
+        loadStats();
+    }
+}
+
+// ─── RANKING ─────────────────────────────────────────────────
+async function loadRanking() {
+    const container = q('#rankingList');
+    const { data, error } = await sb
+        .from('users')
+        .select('id, name, points')
+        .order('points', { ascending: false });
+
+    if (error || !data?.length) {
+        container.innerHTML = empty('🏆', error ? 'Błąd ładowania rankingu.' : 'Brak danych.');
+        return;
+    }
+
+    const medals = ['is-gold', 'is-silver', 'is-bronze'];
+    const rnCls  = ['rn-1', 'rn-2', 'rn-3'];
+    const labels = ['🥇', '🥈', '🥉'];
+
+    container.innerHTML = data.map((u, i) => {
+        const isMe = u.id === currentUser?.id;
+        const mc   = i < 3 ? medals[i] : '';
+        const rc   = i < 3 ? rnCls[i]  : 'rn-x';
+        const lbl  = i < 3 ? labels[i] : (i + 1);
+        return `
+        <div class="ranking-item ${mc} ${isMe ? 'is-me' : ''}">
+            <div class="rank-num ${rc}">${lbl}</div>
+            <div class="rank-name">${esc(u.name || '—')} ${isMe ? '<span style="color:var(--accent);font-size:12px">(Ty)</span>' : ''}</div>
+            <div class="rank-pts">⭐ ${u.points ?? 0}</div>
+        </div>`;
+    }).join('');
+
+    // update rank stat
+    const rank = data.findIndex(u => u.id === currentUser?.id) + 1;
+    q('#sRank').textContent = rank > 0 ? '#' + rank : '#—';
+}
+
+// ─── HISTORY ─────────────────────────────────────────────────
+async function loadHistory() {
+    const tbody = q('#historyBody');
+    const { data, error } = await sb
+        .from('activities')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+    q('#sAct').textContent = data?.length ?? 0;
+
+    if (error) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted)">Błąd ładowania.</td></tr>`;
+        return;
+    }
+
+    if (!data?.length) {
+        tbody.innerHTML = `<tr><td colspan="4">${empty('📋', 'Brak aktywności.')}</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.map(a => `
+        <tr>
+            <td>${TYPE_EMOJI[a.type] ?? '📌'} ${esc(a.type)}</td>
+            <td><strong style="color:var(--accent)">+${a.points}</strong></td>
+            <td><span class="status-pill sp-${a.status}">${fmtStatus(a.status)}</span></td>
+            <td style="color:var(--muted);font-size:13px">${fmtDate(a.created_at)}</td>
+        </tr>`).join('');
+}
+
+// ─── ADMIN – PENDING ─────────────────────────────────────────
+async function loadPending() {
+    const container = q('#pendingList');
+    container.innerHTML = `<div class="empty-state"><div class="spinner"></div></div>`;
+
+    const { data, error } = await sb
+        .from('activities')
+        .select('*, users(name)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+
+    if (error) { container.innerHTML = empty('⚠️', error.message); return; }
+
+    if (!data?.length) {
+        container.innerHTML = empty('✅', 'Brak oczekujących zgłoszeń.');
+        return;
+    }
+
+    container.innerHTML = data.map(a => `
+        <div class="pending-card" id="pc-${a.id}">
+            <div class="pc-info">
+                <div class="pc-name">👤 ${esc(a.users?.name || 'Nieznany')}</div>
+                <div class="pc-meta">${TYPE_EMOJI[a.type] ?? '📌'} ${esc(a.type)} · ${fmtDate(a.created_at)}</div>
+            </div>
+            <div class="pc-pts">+${a.points} pkt</div>
+            <div class="pc-btns">
+                <button class="btn btn-success btn-sm" onclick="approveActivity('${a.id}','${a.user_id}',${a.points})">✓ Zatwierdź</button>
+                <button class="btn btn-danger  btn-sm" onclick="rejectActivity('${a.id}')">✗ Odrzuć</button>
+            </div>
+        </div>`).join('');
+}
+
+async function approveActivity(id, userId, points) {
+    const { error: e1 } = await sb.from('activities').update({ status: 'approved' }).eq('id', id);
+    if (e1) { toast('Błąd: ' + e1.message, 'err'); return; }
+
+    // add points (manual — replace with DB trigger if configured)
+    const { data: u } = await sb.from('users').select('points').eq('id', userId).single();
+    const newPts = (u?.points ?? 0) + points;
+    const { error: e2 } = await sb.from('users').update({ points: newPts }).eq('id', userId);
+    if (e2) { toast('Błąd dodawania punktów: ' + e2.message, 'err'); return; }
+
+    q('#pc-' + id)?.remove();
+    toast('✅ Zatwierdzono i dodano punkty!', 'ok');
+
+    if (userId === currentUser.id) {
+        await fetchProfile();
+        renderDashboard();
+    }
+}
+
+async function rejectActivity(id) {
+    const { error } = await sb.from('activities').update({ status: 'rejected' }).eq('id', id);
+    if (error) { toast('Błąd: ' + error.message, 'err'); return; }
+    q('#pc-' + id)?.remove();
+    toast('Zgłoszenie odrzucone.', 'err');
+}
+
+// ─── ADMIN – USERS ───────────────────────────────────────────
+async function loadUsers() {
+    const container = q('#usersList');
+    container.innerHTML = `<div class="empty-state"><div class="spinner"></div></div>`;
+
+    const { data, error } = await sb.from('users').select('*').order('points', { ascending: false });
+
+    if (error) { container.innerHTML = empty('⚠️', error.message); return; }
+    if (!data?.length) { container.innerHTML = empty('👥', 'Brak użytkowników.'); return; }
+
+    container.innerHTML = data.map(u => `
+        <div class="user-row">
+            <div class="ur-avatar">${(u.name || '?').charAt(0).toUpperCase()}</div>
+            <div class="ur-info">
+                <div class="ur-name">${esc(u.name || 'Brak nazwy')}</div>
+                <div class="ur-id">${u.id}</div>
+            </div>
+            <div class="ur-controls">
+                <input type="number" class="pts-input" id="up-${u.id}" value="${u.points ?? 0}" min="0" />
+                <select class="role-select" id="ur-${u.id}">
+                    <option value="user"  ${u.role === 'user'  ? 'selected' : ''}>Ministrant</option>
+                    <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="saveUser('${u.id}')">Zapisz</button>
+            </div>
+        </div>`).join('');
+}
+
+async function saveUser(userId) {
+    const points = parseInt(q('#up-' + userId).value, 10);
+    const role   = q('#ur-' + userId).value;
+
+    const { error } = await sb.from('users').update({ points, role }).eq('id', userId);
+
+    if (error) {
+        toast('Błąd: ' + error.message, 'err');
+    } else {
+        toast('✅ Zapisano zmiany!', 'ok');
+        if (userId === currentUser.id) { await fetchProfile(); renderDashboard(); }
+    }
+}
+
+// ─── TAB HELPERS ─────────────────────────────────────────────
+function openTab(name, btn) {
+    q('#mainTabNav').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#dashboardView > .main-content > .tab-panel')
+        .forEach(p => p.classList.remove('active'));
+    q('#panel-' + name).classList.add('active');
+
+    if (name === 'ranking') loadRanking();
+    if (name === 'history') loadHistory();
+    if (name === 'admin')   { loadPending(); loadUsers(); }
+}
+
+function openAdminTab(name, btn) {
+    q('#adminTabNav').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    q('#panel-admin').querySelectorAll(':scope > .tab-panel')
+        .forEach(p => p.classList.remove('active'));
+    q('#admin-' + name).classList.add('active');
+}
+
+// ─── UTILS ───────────────────────────────────────────────────
+function q(sel) { return document.querySelector(sel); }
+
+function showView(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    q('#' + id).classList.add('active');
+}
+
+function setLoading(btn, loading, label) {
+    btn.disabled  = loading;
+    btn.innerHTML = loading ? '<span class="spinner"></span> ' + label : label;
+}
+
+function showAlert(id, msg, type) {
+    const el = q('#' + id);
+    el.textContent = msg;
+    el.className   = `alert alert-${type} show`;
+    setTimeout(() => el.classList.remove('show'), 6000);
+}
+
+function toast(msg, type = 'ok') {
+    const c = q('#toasts');
+    const t = document.createElement('div');
+    t.className   = `toast toast-${type}`;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+
+function empty(icon, text) {
+    return `<div class="empty-state"><div class="ei">${icon}</div><p>${text}</p></div>`;
+}
+
+function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleString('pl-PL', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+}
+
+function fmtStatus(s) {
+    return { pending: '⏳ Oczekuje', approved: '✅ Zatwierdzone', rejected: '❌ Odrzucone' }[s] ?? s;
+}
+
+// ─── START ───────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
